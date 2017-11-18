@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import sys
 import argparse
+import urllib.request
+import tarfile
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--download', default=False, action='store_true', help='download, configure new package')
@@ -28,9 +30,9 @@ def prepare():
 
 def downloading():
     print('downloading sources')
-    wgetcom = ['wget', '-O',  'ffmpeg-snapshot.tar.bz2', 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2']
     try:
-        subprocess.check_call(wgetcom)
+        url = 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2'
+        urllib.request.urlretrieve(url, 'ffmpeg-snapshot.tar.bz2')
         print('download is ok!')
     except:
         print('download error!')
@@ -38,9 +40,9 @@ def downloading():
 
 
 def unpack():
-    tarcom = ['tar', 'xjvf', './ffmpeg-snapshot.tar.bz2']
-    try:
-        subprocess.check_call(tarcom)
+   try:
+        tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
+        tar.extractall()
         print('extract success')
         os.chdir('./ffmpeg')
         print('changed workingdir to "./ffmpeg"')
@@ -89,13 +91,6 @@ def configure():
     except:
         print('install error')
         sys.exit(1)
-    hashcom = ['hash', '-r']
-    try:
-        subprocess.check_call(hashcom)
-        print('hash success')
-    except:
-        print('hash error')
-        #sys.exit(1)
 
 
 def main():
