@@ -47,9 +47,9 @@ def unpack():
     except:
         print('extract error')
         sys.exit(1)
-    chmodcom = ['chmod', '775', 'configure']
     try:
-        subprocess.check_call(chmodcom)
+        st = os.stat('configure')
+        os.chmod('configure', st.st_mode|0o111)
         print('doing chmod to "configure"')
     except:
         print('chmod for "configure" fail')
@@ -72,7 +72,6 @@ def configure():
         print('configure package')
     except:
         print('configure error')
-        print(err)
         sys.exit(1)
     path = '{0}/bin:{1}'.format(varhome, varpath)
     os.environ["PATH"] = path
@@ -96,7 +95,7 @@ def configure():
         print('hash success')
     except:
         print('hash error')
-        sys.exit(1)
+        #sys.exit(1)
 
 
 def main():
