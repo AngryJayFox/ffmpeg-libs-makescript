@@ -120,9 +120,9 @@ def main():
             except:
                 print('check failed')
         if args.file is None:
-            print('functional is not ready. use -h')
+            sys.exit(0)
         if args.file is not None:
             print('video must be converted, but i cant yet')
 
 
-main()
+if  __name__ ==  "__main__" : main()
