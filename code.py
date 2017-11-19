@@ -8,9 +8,12 @@ import urllib.request
 import tarfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--download', default=False, action='store_true', help='download, configure new package')
-parser.add_argument('-f', '--file', action='store', help='directory to file for check')
-parser.add_argument('-c', '--check', default=False, action='store_true', help='check starting')
+parser.add_argument('-d', '--download', default=False, action='store_true', help='download and unpack new package')
+parser.add_argument('-c', '--configure', default=False, action='store_true', help='configure and install downloaded package')
+parser.add_argument('-if', '--ifile', action='store', help='directory to file for check')
+parser.add_argument('-ch', '--check', default=False, action='store_true', help='check starting')
+parser.add_argument('--shared', default=False, action='store_true', help='switch to "shared" build. "static" in default configuration')
+
 
 def prepare():
     try:
@@ -23,12 +26,12 @@ def prepare():
         else:
             sys.exit(1)
     os.mkdir('./ffmpeg_source')
-    print('create new dir')
-    os.chdir('./ffmpeg_source')
-    print('changed workingdir to "ffmpeg_source"')
+    print('created new dir')
 
 
 def downloading():
+    os.chdir('./ffmpeg_source')
+    print('changed workingdir to "ffmpeg_source"')
     print('downloading sources')
     try:
         url = 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2'
@@ -40,7 +43,7 @@ def downloading():
 
 
 def unpack():
-   try:
+    try:
         tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
         tar.extractall()
         print('extract success')
@@ -49,6 +52,11 @@ def unpack():
     except:
         print('extract error')
         sys.exit(1)
+
+
+def configure(args):
+    if args.download is False:
+        os.chdir('./ffmpeg_source/ffmpeg')
     try:
         st = os.stat('configure')
         os.chmod('configure', st.st_mode|0o111)
@@ -56,19 +64,24 @@ def unpack():
     except:
         print('chmod for "configure" fail')
         sys.exit(1)
-
-
-def configure():
     varpath = os.environ["PATH"]
     varhome = os.environ["HOME"]
     path = '{0}/bin:{1}'.format(varhome, varpath)
     os.environ['PATH'] = path
     pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
     os.environ['PKG_CONFIG_PATH'] = pkgpath
-    configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static', \
-        '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome), '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome), \
-        '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--enable-nonfree']
-    hashcom = ['hash', '-r']
+    if args.shared is True:
+        configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
+                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
+                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
+                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome),'--disable-static',
+                     '--enable-shared', '--enable-nonfree']
+    else:
+        configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
+                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
+                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
+                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--disable-shared',
+                     '--enable-static', '--enable-nonfree']
     try:
         subprocess.check_call(configure)
         print('configure package')
@@ -93,30 +106,38 @@ def configure():
         sys.exit(1)
 
 
+def checking(args):
+    varhome = os.environ['HOME']
+    path = '{0}/bin'.format(varhome)
+    ldlib = '{0}/ffmpeg_build/lib'.format(varhome)
+    os.environ['LD_LIBRARY_PATH'] = ldlib
+    print(ldlib)
+    comforcheck = ['./ffmpeg', '-version']
+    try:
+        os.chdir(path)
+        subprocess.check_call(comforcheck, timeout=10)
+        print('check is success')
+    except:
+        print('check failed')
+
+
 def main():
     args = parser.parse_args()
-    print(args.download, args.file)
     if args.download is True:
         print('installing new package of ffmpeg:')
         prepare()
         downloading()
         unpack()
-        configure()
-    else:
-        varhome = os.environ['HOME']
-        path = '{0}/bin'.format(varhome)
-        comforcheck = ['./ffmpeg', '-version']
-        if args.check is True:
-            try:
-                os.chdir(path)
-                subprocess.check_call(comforcheck, timeout=10)
-                print('check is success')
-            except:
-                print('check failed')
-        if args.file is None:
-            sys.exit(0)
-        if args.file is not None:
-            print('video must be converted, but i cant yet')
+    if args.configure is True:
+        configure(args)
+    if args.check is True:
+        checking(args)
+    if args.ifile is not None:
+        print('inputfile choised, but functional is not ready')
+        sys.exit(0)
+#    if args.ofile is not None:
+#        print('outputfile choised, but functional is not ready')
 
 
-if  __name__ ==  "__main__" : main()
+if  __name__ ==  "__main__" :
+    main()
