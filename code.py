@@ -70,18 +70,14 @@ def configure(args):
     os.environ['PATH'] = path
     pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
     os.environ['PKG_CONFIG_PATH'] = pkgpath
+    configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
+                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
+                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
+                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--enable-nonfree']
     if args.shared is True:
-        configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
-                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
-                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
-                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome),'--disable-static',
-                     '--enable-shared', '--enable-nonfree']
+        configure.extend['--disable-static', '--enable-shared']
     else:
-        configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
-                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
-                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
-                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--disable-shared',
-                     '--enable-static', '--enable-nonfree']
+        configure.extend['--disable-shared', '--enable-static']
     try:
         subprocess.check_call(configure)
         print('configure package')
