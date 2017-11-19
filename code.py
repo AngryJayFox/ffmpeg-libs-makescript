@@ -13,7 +13,7 @@ parser.add_argument('-c', '--configure', default=False, action='store_true', hel
 parser.add_argument('-if', '--ifile', action='store', help='directory to file for check')
 parser.add_argument('-ch', '--check', default=False, action='store_true', help='check starting')
 parser.add_argument('--shared', default=False, action='store_true', help='switch to "shared" build. "static" in default configuration')
-
+parser.add_argument('-p', '--path', action='store', help='destination path')
 
 def prepare():
     try:
@@ -65,7 +65,10 @@ def configure(args):
         print('chmod for "configure" fail')
         sys.exit(1)
     varpath = os.environ["PATH"]
-    varhome = os.environ["HOME"]
+    if args.path is None:
+        varhome = os.environ["HOME"]
+    else:
+        varhome = args.path
     path = '{0}/bin:{1}'.format(varhome, varpath)
     os.environ['PATH'] = path
     pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
@@ -75,9 +78,9 @@ def configure(args):
                      '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
                      '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--enable-nonfree']
     if args.shared is True:
-        configure.extend['--disable-static', '--enable-shared']
+        configure.extend(['--disable-static', '--enable-shared'])
     else:
-        configure.extend['--disable-shared', '--enable-static']
+        configure.extend(['--disable-shared', '--enable-static'])
     try:
         subprocess.check_call(configure)
         print('configure package')
@@ -103,7 +106,10 @@ def configure(args):
 
 
 def checking(args):
-    varhome = os.environ['HOME']
+    if args.path is None:
+        varhome = os.environ["HOME"]
+    else:
+        varhome = args.path
     path = '{0}/bin'.format(varhome)
     ldlib = '{0}/ffmpeg_build/lib'.format(varhome)
     os.environ['LD_LIBRARY_PATH'] = ldlib
