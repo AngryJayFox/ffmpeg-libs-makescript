@@ -15,6 +15,7 @@ parser.add_argument('-ch', '--check', default=False, action='store_true', help='
 parser.add_argument('--shared', default=False, action='store_true', help='switch to "shared" build. "static" in default configuration')
 parser.add_argument('-p', '--path', action='store', help='destination path')
 parser.add_argument('--libx264', default=False, action='store_true', help='download and install libx264')
+parser.add_argument('--libx265', default=False, action='store_true', help='download and install libx265')
 
 def prepare():
     try:
@@ -117,17 +118,15 @@ def configure(args):
 
 
 def libx264(args):
-    if args.download is False:
-        if 'ffmpeg_source' not in os.listdir('.'):
-            os.mkdir('ffmpeg_source')
-        os.chdir('./ffmpeg_source')
-        print('workingdir is changed to "./ffmpeg_source"')
+    if 'ffmpeg_source' not in os.listdir('.'):
+        os.mkdir('ffmpeg_source')
+    os.chdir('./ffmpeg_source')
+    print('workingdir is changed to "./ffmpeg_source"')
     if args.path is None:
         varhome = os.environ["HOME"]
     else:
         varhome = args.path
-    d = os.listdir('.')
-    for f in d:
+    for f in os.listdir('.'):
         if 'x264' in f:
             try:
                 shutil.rmtree(f)
@@ -195,6 +194,83 @@ def libx264(args):
     print('you are in {0}'.format(cwd))
 
 
+def libx265(args):
+    if 'ffmpeg_source' not in os.listdir('.'):
+        os.mkdir('ffmpeg_source')
+    os.chdir('./ffmpeg_source')
+    print('workingdir is changed to "./ffmpeg_source"')
+    for f in os.listdir('.'):
+        if 'x265' in f:
+            try:
+                shutil.rmtree(f)
+                print('removed: {0}'.format(f))
+            except NotADirectoryError:
+                pass
+#    os.mkdir('x265')
+#    print('create x265 dir')
+    if args.path is None:
+        varhome = os.environ['HOME']
+    else:
+        varhome = args.path
+    varpath = os.environ['PATH']
+    path = '{0}/bin:{1}'.format(varhome, varpath)
+    os.environ['PATH'] = path
+    print('downloading sources')
+    try:
+        url = 'http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz'
+        urllib.request.urlretrieve(url, 'x265_2.5.tar.gz')
+        print('download is ok!')
+    except:
+        print('download error!')
+        sys.exit(1)
+    print('unpacking sources')
+    try:
+        tar = tarfile.open('x265_2.5.tar.gz', 'r:gz')
+        tar.extractall()
+        print('extract success')
+        d = os.listdir('.')
+        for f in d:
+            if 'x265' in f:
+                try:
+                    os.chdir(f)
+                    print('changed workingdir to "{0}"'.format(f))
+                except NotADirectoryError:
+                    pass
+    except:
+        print('extract error')
+#    try:
+#        subprocess.check_call(['hg', 'clone', 'https://bitbucker.org/multicoreware/x265'])
+#    except:
+#        print('hg clone fail')
+#        sys.exit(1)
+    os.chdir('source')
+    print('going to source')
+    try:
+        subprocess.check_call(['cmake', '-G', 'Unix Makefiles', '-DCMAKE_INSTALL_PREFIX={0}/ffmpeg_build'.format(varhome),
+        '-DENABLE_SHARED:bool=off' '../../source'])
+        print('cmake success')
+    except:
+        print('cmake fail')
+        sys.exit(1)
+    varpath = os.environ['PATH']
+    path = '{0}/bin:{1}'.format(varhome, varpath)
+    os.environ['PATH'] = path
+    try:
+        subprocess.check_call(['make'])
+        print('make success')
+    except:
+        print('make error')
+    try:
+        subprocess.check_call(['make', 'install'])
+        print('make install success')
+    except:
+        print('make install error')
+        sys.exit(1)
+    os.chdir('../../..')
+    cwd = os.getcwd()
+    print('you are in {0}'.format(cwd))
+
+
 def checking(args):
     if args.path is None:
         varhome = os.environ["HOME"]
@@ -224,6 +300,8 @@ def main():
         configure(args)
     if args.libx264 is True:
         libx264(args)
+    if args.libx265 is True:
+        libx265(args)
     if args.check is True:
         checking(args)
     if args.ifile is not None:
