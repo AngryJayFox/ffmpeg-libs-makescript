@@ -38,6 +38,9 @@ def downloading():
         url = 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2'
         urllib.request.urlretrieve(url, 'ffmpeg-snapshot.tar.bz2')
         print('download is ok!')
+        os.chdir('..')
+        cwd = os.getcwd()
+        print('you are in {0}'.format(cwd))
     except:
         print('download error!')
         sys.exit(1)
@@ -45,20 +48,23 @@ def downloading():
 
 def unpack():
     try:
+        os.chdir('./ffmpeg_source')
         tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
         tar.extractall()
         print('extract success')
-        os.chdir('./ffmpeg')
-        print('changed workingdir to "./ffmpeg"')
+        os.chdir('..')
+        cwd = os.getcwd()
+        print('you are in {0}'.format(cwd))
     except:
         print('extract error')
         sys.exit(1)
 
 
 def configure(args):
-    if args.download is False:
-        os.chdir('./ffmpeg_source/ffmpeg')
+    os.chdir('./ffmpeg_source/ffmpeg')
     try:
+        cwd = os.getcwd()
+        print('configure in {0}'.format(cwd))
         st = os.stat('configure')
         os.chmod('configure', st.st_mode|0o111)
         print('doing chmod to "configure"')
@@ -101,6 +107,10 @@ def configure(args):
     try:
         subprocess.check_call(makecom2)
         print('install success')
+        os.chdir('..')
+        os.chdir('..')
+        cwd = os.getcwd()
+        print('you are in {0}'.format(cwd))
     except:
         print('install error')
         sys.exit(1)
@@ -108,6 +118,8 @@ def configure(args):
 
 def libx264(args):
     if args.download is False:
+        if 'ffmpeg_source' not in os.listdir('.'):
+            os.mkdir('ffmpeg_source')
         os.chdir('./ffmpeg_source')
         print('workingdir is changed to "./ffmpeg_source"')
     if args.path is None:
@@ -115,25 +127,41 @@ def libx264(args):
     else:
         varhome = args.path
     d = os.listdir('.')
-    if 'x264' in d:
-        shutil.rmtree('x264')
-    os.mkdir('x264')
-    gitcom = ['git', '-C', 'x264', 'pull', '2>' '/dev/null', '||', 'git', 'clone',
-              '--depth', '1', 'http://git.videolan.org/git/x264']
+    for f in d:
+        if 'x264' in f:
+            try:
+                shutil.rmtree(f)
+                print('removed: {0}'.format(f))
+            except NotADirectoryError:
+                pass
+    print('downloading sources')
     try:
-        print('trying to download libx264 sources')
-        subprocess.check_call(gitcom)
-        print('success!')
+        url = 'ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2'
+        urllib.request.urlretrieve(url, 'last_x264.tar.bz2')
+        print('download is ok!')
     except:
-        print('downloading libx264 sources via git failed')
+        print('download error!')
         sys.exit(1)
-    os.chdir('x264')
-    print('workingdir is changed to "x264"')
+    try:
+        tar = tarfile.open('./last_x264.tar.bz2', 'r:bz2')
+        tar.extractall()
+        print('extract success')
+        d = os.listdir('.')
+        for f in d:
+            if 'x264' in f:
+                try:
+                    os.chdir(f)
+                    print('changed workingdir to "{0}"'.format(f))
+                except NotADirectoryError:
+                    pass
+    except:
+        print('extract error')
+        sys.exit(1)
+    varpath = os.environ['PATH']
     path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ['PATH'] = path
+    varpath = os.environ['PATH']
     pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
-    os.environ['PKG_CONFIG_PATH'] = pkgpath
-    confcode = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin', '--enable-static']
+    confcode = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin'.format(varhome), '--enable-static']
     try:
         print('chmod to configure...')
         st = os.stat('configure')
@@ -161,6 +189,10 @@ def libx264(args):
     except:
         print('make error')
         sys.exit(1)
+    os.chdir('..')
+    os.chdir('..')
+    cwd = os.getcwd()
+    print('you are in {0}'.format(cwd))
 
 
 def checking(args):
