@@ -7,17 +7,97 @@ import argparse
 import urllib.request
 import tarfile
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--download', default=False, action='store_true', help='download and unpack new package')
-parser.add_argument('-c', '--configure', default=False, action='store_true', help='configure and install downloaded package')
-parser.add_argument('-if', '--ifile', action='store', help='directory to file for check')
-parser.add_argument('-ch', '--check', default=False, action='store_true', help='check starting')
-parser.add_argument('--shared', default=False, action='store_true', help='switch to "shared" build. "static" in default configuration')
-parser.add_argument('-p', '--path', action='store', help='destination path')
-parser.add_argument('--libx264', default=False, action='store_true', help='download and install libx264')
-parser.add_argument('--libx265', default=False, action='store_true', help='download and install libx265')
 
-def prepare():
+parser = argparse.ArgumentParser()
+parser.add_argument('--nasm', default=False, action='store_true',
+                    help='download and install nasm')
+parser.add_argument('-d', '--download', default=False, action='store_true',
+                    help='download and unpack new package')
+parser.add_argument('-c', '--configure', default=False, action='store_true',
+                    help='configure and install downloaded package')
+parser.add_argument('-ch', '--check', default=False, action='store_true',
+                    help='check starting')
+parser.add_argument('--shared', default=False, action='store_true',
+                    help='switch to "shared" build. "static" in default configuration')
+parser.add_argument('-p', '--path', action='store',
+                    help='destination path')
+parser.add_argument('--libx264', default=False, action='store_true',
+                    help='download and install libx264')
+parser.add_argument('--libx265', default=False, action='store_true',
+                    help='download and install libx265')
+
+
+def getvars(args):
+    if args.path is None:
+        varhome = os.environ['HOME']
+    else:
+        varhome = args.path
+    varpath = os.environ['PATH']
+    path = '{0}/bin:{1}'.format(varhome, varpath)
+    os.environ['PATH'] = path
+    varpath = os.environ['PATH']
+    pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
+    os.environ['PKG_CONFIG_PATH'] = pkgpath
+    ldlib = '{0}/ffmpeg_build/lib'.format(varhome)
+    os.environ['LD_LIBRARY_PATH'] = ldlib
+    return varpath, varhome
+
+
+def nasm(args):
+    if 'ffmpeg_source' not in os.listdir('.'):
+            os.mkdir('ffmpeg_source')
+    os.chdir('./ffmpeg_source')
+    print('workingdir is changed to ffmpeg_source')
+    try:
+        print('downloading nasm sources...')
+        urllib.request.urlretrieve('http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.bz2',
+                                   'nasm-2.13.01.tar.bz2')
+        print('success!')
+    except:
+        print('download fail!')
+        sys.exit(1)
+    try:
+        print('extracting archive...')
+        tar = tarfile.open('nasm-2.13.01.tar.bz2', 'r:bz2')
+        tar.extractall()
+        print('success!')
+    except:
+        print('extract fail!')
+    os.chdir('./nasm-2.13.01')
+    print('workingdir is changed to nasm-2.13.01')
+    try:
+        print('trying to ./autogen.sh')
+        subprocess.check_call(['./autogen.sh'])
+        print('success!')
+    except:
+        print('./autogen.sh fail')
+    varpath, varhome = getvars(args)
+    try:
+        print('trying to configure')
+        subprocess.check_call(['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin'.format(varhome)])
+        print('success!')
+    except:
+        print('configure fail!')
+    try:
+        print('trying to make')
+        subprocess.check_call(['make'])
+        print('success!')
+    except:
+        print('make fail!')
+        sys.exit(1)
+    try:
+        print('trying to make install')
+        subprocess.check_call(['make', 'install'])
+        print('success!')
+    except:
+        print('make install fail!')
+        sys.exit(1)
+    os.chdir('../..')
+    cwd = os.getcwd()
+    print('you are in {0}'.format(cwd))
+
+
+def downloading():
     try:
         shutil.rmtree('./ffmpeg_source')
         print('clear old files')
@@ -29,9 +109,6 @@ def prepare():
             sys.exit(1)
     os.mkdir('./ffmpeg_source')
     print('created new dir')
-
-
-def downloading():
     os.chdir('./ffmpeg_source')
     print('changed workingdir to "ffmpeg_source"')
     print('downloading sources')
@@ -72,15 +149,7 @@ def configure(args):
     except:
         print('chmod for "configure" fail')
         sys.exit(1)
-    varpath = os.environ["PATH"]
-    if args.path is None:
-        varhome = os.environ["HOME"]
-    else:
-        varhome = args.path
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ['PATH'] = path
-    pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
-    os.environ['PKG_CONFIG_PATH'] = pkgpath
+    varpath, varhome = getvars(args)
     configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
                      '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
                      '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
@@ -95,8 +164,7 @@ def configure(args):
     except:
         print('configure error')
         sys.exit(1)
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ["PATH"] = path
+    getvars(args)
     makecom = ['make']
     try:
         subprocess.check_call(makecom)
@@ -122,10 +190,6 @@ def libx264(args):
         os.mkdir('ffmpeg_source')
     os.chdir('./ffmpeg_source')
     print('workingdir is changed to "./ffmpeg_source"')
-    if args.path is None:
-        varhome = os.environ["HOME"]
-    else:
-        varhome = args.path
     for f in os.listdir('.'):
         if 'x264' in f:
             try:
@@ -156,10 +220,7 @@ def libx264(args):
     except:
         print('extract error')
         sys.exit(1)
-    varpath = os.environ['PATH']
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    varpath = os.environ['PATH']
-    pkgpath = '{0}/ffmpeg_build/lib/pkgconfig'.format(varhome)
+    varpath, varhome = getvars(args)
     confcode = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin'.format(varhome), '--enable-static']
     try:
         print('chmod to configure...')
@@ -176,8 +237,7 @@ def libx264(args):
     except:
         print('fail!')
         sys.exit(1)
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ['PATH'] = path
+    getvars(args)
     try:
         print('trying to make...')
         subprocess.check_call(['make'])
@@ -206,15 +266,7 @@ def libx265(args):
                 print('removed: {0}'.format(f))
             except NotADirectoryError:
                 pass
-#    os.mkdir('x265')
-#    print('create x265 dir')
-    if args.path is None:
-        varhome = os.environ['HOME']
-    else:
-        varhome = args.path
-    varpath = os.environ['PATH']
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ['PATH'] = path
+    varpath, varhome = vars.getvars()
     print('downloading sources')
     try:
         url = 'http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz'
@@ -238,11 +290,6 @@ def libx265(args):
                     pass
     except:
         print('extract error')
-#    try:
-#        subprocess.check_call(['hg', 'clone', 'https://bitbucker.org/multicoreware/x265'])
-#    except:
-#        print('hg clone fail')
-#        sys.exit(1)
     os.chdir('source')
     print('going to source')
     try:
@@ -252,9 +299,7 @@ def libx265(args):
     except:
         print('cmake fail')
         sys.exit(1)
-    varpath = os.environ['PATH']
-    path = '{0}/bin:{1}'.format(varhome, varpath)
-    os.environ['PATH'] = path
+    getvars(args)
     try:
         subprocess.check_call(['make'])
         print('make success')
@@ -272,14 +317,7 @@ def libx265(args):
 
 
 def checking(args):
-    if args.path is None:
-        varhome = os.environ["HOME"]
-    else:
-        varhome = args.path
-    path = '{0}/bin'.format(varhome)
-    ldlib = '{0}/ffmpeg_build/lib'.format(varhome)
-    os.environ['LD_LIBRARY_PATH'] = ldlib
-    print(ldlib)
+    varpath, varhome = getvars(args)
     comforcheck = ['./ffmpeg', '-version']
     try:
         os.chdir(path)
@@ -291,9 +329,10 @@ def checking(args):
 
 def main():
     args = parser.parse_args()
+    if args.nasm is True:
+        nasm(args)
     if args.download is True:
         print('installing new package of ffmpeg:')
-        prepare()
         downloading()
         unpack()
     if args.configure is True:
@@ -304,11 +343,6 @@ def main():
         libx265(args)
     if args.check is True:
         checking(args)
-    if args.ifile is not None:
-        print('inputfile choised, but functional is not ready')
-        sys.exit(0)
-#    if args.ofile is not None:
-#        print('outputfile choised, but functional is not ready')
 
 
 if  __name__ ==  "__main__" :
