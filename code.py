@@ -11,21 +11,20 @@ import tarfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--nasm', default=False, action='store_true',
                     help='download and install nasm')
-parser.add_argument('-d', '--download', default=False, action='store_true',
-                    help='download and unpack new package')
-parser.add_argument('-c', '--configure', default=False, action='store_true',
-                    help='configure and install downloaded package')
-parser.add_argument('-ch', '--check', default=False, action='store_true',
-                    help='check starting')
-parser.add_argument('--shared', default=False, action='store_true',
-                    help='switch to "shared" build. "static" in default configuration')
-parser.add_argument('-p', '--path', action='store',
+parser.add_argument('--path', action='store',
                     help='destination path')
 parser.add_argument('--libx264', default=False, action='store_true',
                     help='download and install libx264')
 parser.add_argument('--libx265', default=False, action='store_true',
                     help='download and install libx265')
-
+parser.add_argument('--libvpx', default=False, action='store_true',
+                    help='download and install libvpx')
+parser.add_argument('--ffmpeg', default=False, action='store_true',
+                    help='download and install ffmpeg')
+parser.add_argument('--shared', default=False, action='store_true',
+                    help='switch to "shared" build. "static" in default configuration')
+parser.add_argument('--check', default=False, action='store_true',
+                    help='check starting')
 
 def getvars(args):
     if args.path is None:
@@ -97,94 +96,6 @@ def nasm(args):
     print('you are in {0}'.format(cwd))
 
 
-def downloading():
-    try:
-        shutil.rmtree('./ffmpeg_source')
-        print('clear old files')
-    except:
-        d = os.listdir('.')
-        if 'ffmpeg_source' not in d:
-            print('dir is not exist')
-        else:
-            sys.exit(1)
-    os.mkdir('./ffmpeg_source')
-    print('created new dir')
-    os.chdir('./ffmpeg_source')
-    print('changed workingdir to "ffmpeg_source"')
-    print('downloading sources')
-    try:
-        url = 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2'
-        urllib.request.urlretrieve(url, 'ffmpeg-snapshot.tar.bz2')
-        print('download is ok!')
-        os.chdir('..')
-        cwd = os.getcwd()
-        print('you are in {0}'.format(cwd))
-    except:
-        print('download error!')
-        sys.exit(1)
-
-
-def unpack():
-    try:
-        os.chdir('./ffmpeg_source')
-        tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
-        tar.extractall()
-        print('extract success')
-        os.chdir('..')
-        cwd = os.getcwd()
-        print('you are in {0}'.format(cwd))
-    except:
-        print('extract error')
-        sys.exit(1)
-
-
-def configure(args):
-    os.chdir('./ffmpeg_source/ffmpeg')
-    try:
-        cwd = os.getcwd()
-        print('configure in {0}'.format(cwd))
-        st = os.stat('configure')
-        os.chmod('configure', st.st_mode|0o111)
-        print('doing chmod to "configure"')
-    except:
-        print('chmod for "configure" fail')
-        sys.exit(1)
-    varpath, varhome = getvars(args)
-    configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
-                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
-                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
-                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--enable-nonfree']
-    if args.shared is True:
-        configure.extend(['--disable-static', '--enable-shared'])
-    else:
-        configure.extend(['--disable-shared', '--enable-static'])
-    try:
-        subprocess.check_call(configure)
-        print('configure package')
-    except:
-        print('configure error')
-        sys.exit(1)
-    getvars(args)
-    makecom = ['make']
-    try:
-        subprocess.check_call(makecom)
-        print('make success')
-    except:
-        print('make error')
-        sys.exit(1)
-    makecom2 = ['make', 'install']
-    try:
-        subprocess.check_call(makecom2)
-        print('install success')
-        os.chdir('..')
-        os.chdir('..')
-        cwd = os.getcwd()
-        print('you are in {0}'.format(cwd))
-    except:
-        print('install error')
-        sys.exit(1)
-
-
 def libx264(args):
     if 'ffmpeg_source' not in os.listdir('.'):
         os.mkdir('ffmpeg_source')
@@ -199,8 +110,8 @@ def libx264(args):
                 pass
     print('downloading sources')
     try:
-        url = 'ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2'
-        urllib.request.urlretrieve(url, 'last_x264.tar.bz2')
+        urllib.request.urlretrieve('ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2',
+            'last_x264.tar.bz2')
         print('download is ok!')
     except:
         print('download error!')
@@ -248,8 +159,7 @@ def libx264(args):
     except:
         print('make error')
         sys.exit(1)
-    os.chdir('..')
-    os.chdir('..')
+    os.chdir('../..')
     cwd = os.getcwd()
     print('you are in {0}'.format(cwd))
 
@@ -266,11 +176,10 @@ def libx265(args):
                 print('removed: {0}'.format(f))
             except NotADirectoryError:
                 pass
-    varpath, varhome = vars.getvars()
+    varpath, varhome = getvars(args)
     print('downloading sources')
     try:
-        url = 'http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz'
-        urllib.request.urlretrieve(url, 'x265_2.5.tar.gz')
+        urllib.request.urlretrieve('http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz', 'x265_2.5.tar.gz')
         print('download is ok!')
     except:
         print('download error!')
@@ -280,8 +189,7 @@ def libx265(args):
         tar = tarfile.open('x265_2.5.tar.gz', 'r:gz')
         tar.extractall()
         print('extract success')
-        d = os.listdir('.')
-        for f in d:
+        for f in os.listdir('.'):
             if 'x265' in f:
                 try:
                     os.chdir(f)
@@ -316,31 +224,143 @@ def libx265(args):
     print('you are in {0}'.format(cwd))
 
 
+def libvpx(args):
+    if 'ffmpeg_source' not in os.listdir('.'):
+        os.mkdir('ffmpeg_source')
+    os.chdir('./ffmpeg_source')
+    for f in os.listdir('.'):
+        if 'libvpx' in f:
+            try:
+                shutil.rmtree(f)
+            except NotADirectoryError:
+                pass
+    try:
+        print('trying to git clone')
+        subprocess.check_call(['git', 'clone', '--depth', '1', 'https://chromium.googlesource.com/webm/libvpx.git'])
+        print('success!')
+    except:
+        print('git clone fail!')
+    os.chdir('libvpx')
+    varpath, varhome = getvars(args)
+    try:
+        print('trying to configure libvpx')
+        subprocess.check_call(['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--disable-examples',
+                               '--disable-unit-tests', '--enable-vp9-highbitdepth', '--as=yasm'])
+        print('success!')
+    except:
+        print('configure fail!')
+        sys.exit(1)
+    getvars(args)
+    try:
+        print('trying to make')
+        subprocess.check_call(['make'])
+        print('success!')
+    except:
+        print('make error!')
+        sys.exit(1)
+    try:
+        print('trying to make install')
+        subprocess.check_call(['make', 'install'])
+        print('success!')
+    except:
+        print('make install error!')
+        sys.exit(1)
+
+
+def ffmpeg(args):
+    if 'ffmpeg_source' not in os.listdir('.'):
+        os.mkdir('ffmpeg_source')
+    os.chdir('./ffmpeg_source')
+    print('changed workingdir to ffmpeg_source')
+    try:
+        print('downloading sources of ffmpeg...')
+        urllib.request.urlretrieve('http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2', 'ffmpeg-snapshot.tar.bz2')
+        print('download is ok!')
+    except:
+        print('download fail!')
+    try:
+        print('trying to extract ffmpeg')
+        tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
+        tar.extractall()
+        print('extract success')
+    except:
+        print('extract error')
+        sys.exit(1)
+    os.chdir('./ffmpeg')
+    print('changed workingdir to ffmpeg')
+    try:
+        print('changing permissions to configure...')
+        st = os.stat('configure')
+        os.chmod('configure', st.st_mode|0o111)
+        print('success!')
+    except:
+        print('chmod fail')
+        sys.exit(1)
+    varpath, varhome = getvars(args)
+    configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
+                     '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
+                     '--extra-ldflags=-L{0}/ffmpeg_build/lib'.format(varhome),
+                     '--extra-libs=-lpthread -lm', '--bindir={0}/bin'.format(varhome), '--enable-nonfree']
+    if args.shared is True:
+        configure.extend(['--disable-static', '--enable-shared'])
+    else:
+        configure.extend(['--disable-shared', '--enable-static'])
+    if args.libx264 is True:
+        configure.extend(['--enable-libx264', '--enable-gpl'])
+    if args.libx264 is True:
+        configure.append('--enable-libx265')
+    if args.libvpx is True:
+        configure.append('--enable-libvpx')
+    try:
+        print('trying to configure...')
+        subprocess.check_call(configure)
+        print('success!')
+    except:
+        print('configure error')
+        sys.exit(1)
+    getvars(args)
+    try:
+        print('trying to make...')
+        subprocess.check_call(['make'])
+        print('success!')
+    except:
+        print('make error')
+        sys.exit(1)
+    try:
+        print('trying to make install...')
+        subprocess.check_call(['make', 'install'])
+        print('success!')
+        os.chdir('../../../..')
+        cwd = os.getcwd()
+        print('you are in {0}'.format(cwd))
+    except:
+        print('install error')
+        sys.exit(1)
+
+
 def checking(args):
     varpath, varhome = getvars(args)
-    comforcheck = ['./ffmpeg', '-version']
+    os.chdir('{0}/bin'.format(varhome))
     try:
-        os.chdir(path)
-        subprocess.check_call(comforcheck, timeout=10)
-        print('check is success')
+        subprocess.check_call('./ffmpeg', '-version')
+        sys.exit(0)
     except:
         print('check failed')
+        sys.exit(1)
 
 
 def main():
     args = parser.parse_args()
     if args.nasm is True:
         nasm(args)
-    if args.download is True:
-        print('installing new package of ffmpeg:')
-        downloading()
-        unpack()
-    if args.configure is True:
-        configure(args)
     if args.libx264 is True:
         libx264(args)
     if args.libx265 is True:
         libx265(args)
+    if args.libvpx is True:
+        libvpx(args)
+    if args.ffmpeg is True:
+        ffmpeg(args)
     if args.check is True:
         checking(args)
 
