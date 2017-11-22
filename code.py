@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import os
+import os.path
 import shutil
 import subprocess
 import sys
@@ -60,7 +61,7 @@ def getvars(args):
 
 def checkfolder():
     os.chdir(mydir)
-    if 'ffmpeg_source' not in os.listdir('.'):
+    if not os.path.isdir('ffmpeg_source'):
             os.mkdir('ffmpeg_source')
     os.chdir('./ffmpeg_source')
     print('workingdir is changed to {0}'.format(os.getcwd()))
