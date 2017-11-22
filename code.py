@@ -31,7 +31,7 @@ parser.add_argument('--ffmpeg', default=False, action='store_true',
                     help='download and install ffmpeg')
 
 parser.add_argument('--shared', default=False, action='store_true',
-                    help='switch to "shared" build. "static" in default configuration'
+                    help='switch to "shared" build. "static" in default configuration')
 parser.add_argument('--check', default=False, action='store_true',
                     help='check starting')
 parser.add_argument('--mytest', default=False, action='store_true',
