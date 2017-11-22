@@ -25,6 +25,13 @@ parser.add_argument('--shared', default=False, action='store_true',
                     help='switch to "shared" build. "static" in default configuration')
 parser.add_argument('--check', default=False, action='store_true',
                     help='check starting')
+parser.add_argument('--mytest', default=False, action='store_true',
+                    help='mine start vo download of libs')
+
+"""
+SUPPORT FUNCTIONS
+"""
+
 
 def getvars(args):
     if args.path is None:
@@ -42,260 +49,155 @@ def getvars(args):
     return varpath, varhome
 
 
-def nasm(args):
+def checkfolder():
+    os.chdir(mydir)
     if 'ffmpeg_source' not in os.listdir('.'):
             os.mkdir('ffmpeg_source')
     os.chdir('./ffmpeg_source')
-    print('workingdir is changed to ffmpeg_source')
+    print('workingdir is changed to {0}'.format(os.getcwd()))
+
+
+def downloadsource(name, url, file):
     try:
-        print('downloading nasm sources...')
-        urllib.request.urlretrieve('http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.bz2',
-                                   'nasm-2.13.01.tar.bz2')
-        print('success!')
+        print('downloading sources of {0}'.format(name))
+        urllib.request.urlretrieve(url, file)
+        print('download is ok!')
     except:
         print('download fail!')
         sys.exit(1)
+
+
+def rmoldsouce(name):
+    for f in os.listdir('.'):
+        if name in f:
+            try:
+                shutil.rmtree(f)
+                print('removed: {0}'.format(f))
+            except NotADirectoryError:
+                pass
+
+
+def extracting(file, type):
     try:
-        print('extracting archive...')
-        tar = tarfile.open('nasm-2.13.01.tar.bz2', 'r:bz2')
+        print('extracting archive{0}...'.format(file))
+        tar = tarfile.open(file, type)
         tar.extractall()
         print('success!')
     except:
         print('extract fail!')
-    os.chdir('./nasm-2.13.01')
-    print('workingdir is changed to nasm-2.13.01')
-    try:
-        print('trying to ./autogen.sh')
-        subprocess.check_call(['./autogen.sh'])
-        print('success!')
-    except:
-        print('./autogen.sh fail')
-    varpath, varhome = getvars(args)
-    try:
-        print('trying to configure')
-        subprocess.check_call(['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin'.format(varhome)])
-        print('success!')
-    except:
-        print('configure fail!')
-    try:
-        print('trying to make')
-        subprocess.check_call(['make'])
-        print('success!')
-    except:
-        print('make fail!')
         sys.exit(1)
-    try:
-        print('trying to make install')
-        subprocess.check_call(['make', 'install'])
-        print('success!')
-    except:
-        print('make install fail!')
-        sys.exit(1)
-    os.chdir('../..')
-    cwd = os.getcwd()
-    print('you are in {0}'.format(cwd))
 
 
-def libx264(args):
-    if 'ffmpeg_source' not in os.listdir('.'):
-        os.mkdir('ffmpeg_source')
-    os.chdir('./ffmpeg_source')
-    print('workingdir is changed to "./ffmpeg_source"')
+def changedirtosource(name):
     for f in os.listdir('.'):
-        if 'x264' in f:
+        if name in f:
             try:
-                shutil.rmtree(f)
-                print('removed: {0}'.format(f))
+                os.chdir(f)
+                print('changed workingdir to "{0}"'.format(os.getcwd()))
             except NotADirectoryError:
                 pass
-    print('downloading sources')
-    try:
-        urllib.request.urlretrieve('ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2',
-            'last_x264.tar.bz2')
-        print('download is ok!')
-    except:
-        print('download error!')
-        sys.exit(1)
-    try:
-        tar = tarfile.open('./last_x264.tar.bz2', 'r:bz2')
-        tar.extractall()
-        print('extract success')
-        d = os.listdir('.')
-        for f in d:
-            if 'x264' in f:
-                try:
-                    os.chdir(f)
-                    print('changed workingdir to "{0}"'.format(f))
-                except NotADirectoryError:
-                    pass
-    except:
-        print('extract error')
-        sys.exit(1)
-    varpath, varhome = getvars(args)
-    confcode = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--bindir={0}/bin'.format(varhome), '--enable-static']
+            except FileNotFoundError:
+                pass
+
+def configurechmod():
     try:
         print('chmod to configure...')
         st = os.stat('configure')
-        os.chmod('configure', st.st_mode|0o111)
+        os.chmod('configure', st.st_mode | 0o111)
         print('success!')
     except:
         print('chmod to "configure" fail')
         sys.exit(1)
+
+
+def subprocesscom(name, com):
     try:
-        print('trying to configure...')
-        subprocess.check_call(confcode)
+        print('trying to {0} in {1}'.format(name, os.getcwd()))
+        varpath, varhome = getvars(args)
+        subprocess.check_call(com)
         print('success!')
     except:
-        print('fail!')
+        print('{0} fail!'.format(name))
         sys.exit(1)
+
+
+"""
+INSTALL MAIN LIBS FUNCTIONS
+"""
+
+
+def nasm(args):
+    checkfolder()
+    downloadsource('nasm', 'http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.bz2',
+                   'nasm-2.13.01.tar.bz2')
+    rmoldsouce('nasm')
+    extracting('nasm-2.13.01.tar.bz2', 'r:bz2')
+    changedirtosource('nasm')
+    com = ['./autogen.sh']
+    subprocesscom('./autogen.sh nasm', com)
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure nasm', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
+                                     '--bindir={0}/bin'.format(varhome)])
+    subprocesscom('make nasm', ['make'])
+    subprocesscom('make install nasm', ['make', 'install'])
+
+
+def libx264(args):
+    checkfolder()
+    downloadsource('libx264', 'ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2',
+                   'last_x264.tar.bz2')
+    rmoldsouce('x264')
+    extracting('last_x264.tar.bz2', 'r:bz2')
+    changedirtosource('x264')
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure libx264', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
+                                        '--bindir={0}/bin'.format(varhome), '--enable-static'])
     getvars(args)
-    try:
-        print('trying to make...')
-        subprocess.check_call(['make'])
-        print('success!')
-        print('trying to make install...')
-        subprocess.check_call(['make', 'install'])
-        print('success!')
-    except:
-        print('make error')
-        sys.exit(1)
-    os.chdir('../..')
-    cwd = os.getcwd()
-    print('you are in {0}'.format(cwd))
+    subprocesscom('make libx264', ['make'])
+    subprocesscom('make install libx264', ['make', 'install'])
 
 
 def libx265(args):
-    if 'ffmpeg_source' not in os.listdir('.'):
-        os.mkdir('ffmpeg_source')
-    os.chdir('./ffmpeg_source')
-    print('workingdir is changed to "./ffmpeg_source"')
-    for f in os.listdir('.'):
-        if 'x265' in f:
-            try:
-                shutil.rmtree(f)
-                print('removed: {0}'.format(f))
-            except NotADirectoryError:
-                pass
-    varpath, varhome = getvars(args)
-    print('downloading sources')
-    try:
-        urllib.request.urlretrieve('http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz', 'x265_2.5.tar.gz')
-        print('download is ok!')
-    except:
-        print('download error!')
-        sys.exit(1)
-    print('unpacking sources')
-    try:
-        tar = tarfile.open('x265_2.5.tar.gz', 'r:gz')
-        tar.extractall()
-        print('extract success')
-        for f in os.listdir('.'):
-            if 'x265' in f:
-                try:
-                    os.chdir(f)
-                    print('changed workingdir to "{0}"'.format(f))
-                except NotADirectoryError:
-                    pass
-    except:
-        print('extract error')
+    checkfolder()
+    downloadsource('libx265', 'http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz', 'x265_2.5.tar.gz')
+    rmoldsouce('x265')
+    extracting('x265_2.5.tar.gz', 'r:gz')
+    changedirtosource('x265')
     os.chdir('source')
-    print('going to source')
-    try:
-        subprocess.check_call(['cmake', '-G', 'Unix Makefiles', '-DCMAKE_INSTALL_PREFIX={0}/ffmpeg_build'.format(varhome),
-        '-DENABLE_SHARED:bool=off' '../../source'])
-        print('cmake success')
-    except:
-        print('cmake fail')
-        sys.exit(1)
+    varpath, varhome = getvars(args)
+    subprocesscom('cmake libx265', ['cmake', '-G', 'Unix Makefiles',
+                                    '-DCMAKE_INSTALL_PREFIX={0}/ffmpeg_build'.format(varhome),
+                                    '-DENABLE_SHARED:bool=off' '../../source'])
     getvars(args)
-    try:
-        subprocess.check_call(['make'])
-        print('make success')
-    except:
-        print('make error')
-    try:
-        subprocess.check_call(['make', 'install'])
-        print('make install success')
-    except:
-        print('make install error')
-        sys.exit(1)
-    os.chdir('../../..')
-    cwd = os.getcwd()
-    print('you are in {0}'.format(cwd))
+    subprocesscom('make libx265', ['make'])
+    subprocesscom('make install libx265', ['make', 'install'])
 
 
 def libvpx(args):
-    if 'ffmpeg_source' not in os.listdir('.'):
-        os.mkdir('ffmpeg_source')
-    os.chdir('./ffmpeg_source')
-    for f in os.listdir('.'):
-        if 'libvpx' in f:
-            try:
-                shutil.rmtree(f)
-            except NotADirectoryError:
-                pass
-    try:
-        print('trying to git clone')
-        subprocess.check_call(['git', 'clone', '--depth', '1', 'https://chromium.googlesource.com/webm/libvpx.git'])
-        print('success!')
-    except:
-        print('git clone fail!')
-    os.chdir('libvpx')
+    checkfolder()
+    downloadsource('libvpx', 'https://github.com/webmproject/libvpx/archive/v1.6.1.tar.gz', 'v1.6.1.tar.gz')
+    rmoldsouce('libvpx')
+    extracting('v1.6.1.tar.gz', 'r:gz')
+    changedirtosource('libvpx')
+    configurechmod()
     varpath, varhome = getvars(args)
-    try:
-        print('trying to configure libvpx')
-        subprocess.check_call(['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--disable-examples',
+    subprocesscom('configure libvpx', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--disable-examples',
                                '--disable-unit-tests', '--enable-vp9-highbitdepth', '--as=yasm'])
-        print('success!')
-    except:
-        print('configure fail!')
-        sys.exit(1)
     getvars(args)
-    try:
-        print('trying to make')
-        subprocess.check_call(['make'])
-        print('success!')
-    except:
-        print('make error!')
-        sys.exit(1)
-    try:
-        print('trying to make install')
-        subprocess.check_call(['make', 'install'])
-        print('success!')
-    except:
-        print('make install error!')
-        sys.exit(1)
+    subprocesscom('make libvpx', ['make'])
+    subprocesscom('make install libvpx', ['make', 'install'])
 
 
 def ffmpeg(args):
-    if 'ffmpeg_source' not in os.listdir('.'):
-        os.mkdir('ffmpeg_source')
-    os.chdir('./ffmpeg_source')
-    print('changed workingdir to ffmpeg_source')
-    try:
-        print('downloading sources of ffmpeg...')
-        urllib.request.urlretrieve('http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2', 'ffmpeg-snapshot.tar.bz2')
-        print('download is ok!')
-    except:
-        print('download fail!')
-    try:
-        print('trying to extract ffmpeg')
-        tar = tarfile.open('./ffmpeg-snapshot.tar.bz2', 'r:bz2')
-        tar.extractall()
-        print('extract success')
-    except:
-        print('extract error')
-        sys.exit(1)
-    os.chdir('./ffmpeg')
-    print('changed workingdir to ffmpeg')
-    try:
-        print('changing permissions to configure...')
-        st = os.stat('configure')
-        os.chmod('configure', st.st_mode|0o111)
-        print('success!')
-    except:
-        print('chmod fail')
-        sys.exit(1)
+    checkfolder()
+    downloadsource('ffmpeg', 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2', 'ffmpeg-snapshot.tar.bz2')
+    rmoldsouce('ffmpeg')
+    extracting('ffmpeg-snapshot.tar.bz2', 'r:bz2')
+    changedirtosource('ffmpeg')
+    configurechmod()
+    #os.chdir('./ffmpeg')
     varpath, varhome = getvars(args)
     configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
                      '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
@@ -311,45 +213,23 @@ def ffmpeg(args):
         configure.append('--enable-libx265')
     if args.libvpx is True:
         configure.append('--enable-libvpx')
-    try:
-        print('trying to configure...')
-        subprocess.check_call(configure)
-        print('success!')
-    except:
-        print('configure error')
-        sys.exit(1)
-    getvars(args)
-    try:
-        print('trying to make...')
-        subprocess.check_call(['make'])
-        print('success!')
-    except:
-        print('make error')
-        sys.exit(1)
-    try:
-        print('trying to make install...')
-        subprocess.check_call(['make', 'install'])
-        print('success!')
-        os.chdir('../../../..')
-        cwd = os.getcwd()
-        print('you are in {0}'.format(cwd))
-    except:
-        print('install error')
-        sys.exit(1)
+    if args.mytest is True:
+        configure.extend(['--enable-libx264', '--enable-gpl', '--enable-libx265', '--enable-libvpx'])
+    subprocesscom('configure ffmpeg', configure)
+    subprocesscom('make ffmpeg', ['make'])
+    subprocesscom('make install ffmpeg', ['make', 'install'])
 
 
 def checking(args):
     varpath, varhome = getvars(args)
     os.chdir('{0}/bin'.format(varhome))
-    try:
-        subprocess.check_call('./ffmpeg', '-version')
-        sys.exit(0)
-    except:
-        print('check failed')
-        sys.exit(1)
+    subprocesscom('checking ffmpeg', ['./ffmpeg', '-version'])
 
 
 def main():
+    global mydir
+    mydir = os.getcwd()
+    global args
     args = parser.parse_args()
     if args.nasm is True:
         nasm(args)
