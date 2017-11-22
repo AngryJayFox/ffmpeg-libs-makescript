@@ -11,6 +11,8 @@ import tarfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--nasm', default=False, action='store_true',
                     help='download and install nasm')
+parser.add_argument('--yasm', default=False, action='store_true',
+                    help='download and install yasm')
 parser.add_argument('--path', action='store',
                     help='destination path')
 parser.add_argument('--libx264', default=False, action='store_true',
@@ -19,10 +21,17 @@ parser.add_argument('--libx265', default=False, action='store_true',
                     help='download and install libx265')
 parser.add_argument('--libvpx', default=False, action='store_true',
                     help='download and install libvpx')
+parser.add_argument('--libfdkaac', default=False, action='store_true',
+                    help='download and install libfdk-aac')
+parser.add_argument('--libmp3lame', default=False, action='store_true',
+                    help='download and install libmp3lame')
+parser.add_argument('--libopus', default=False, action='store_true',
+                    help='download and install libopus')
 parser.add_argument('--ffmpeg', default=False, action='store_true',
                     help='download and install ffmpeg')
+
 parser.add_argument('--shared', default=False, action='store_true',
-                    help='switch to "shared" build. "static" in default configuration')
+                    help='switch to "shared" build. "static" in default configuration'
 parser.add_argument('--check', default=False, action='store_true',
                     help='check starting')
 parser.add_argument('--mytest', default=False, action='store_true',
@@ -139,8 +148,25 @@ def nasm(args):
     varpath, varhome = getvars(args)
     subprocesscom('configure nasm', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
                                      '--bindir={0}/bin'.format(varhome)])
+    getvars(args)
     subprocesscom('make nasm', ['make'])
     subprocesscom('make install nasm', ['make', 'install'])
+
+
+def yasm(args):
+    checkfolder()
+    downloadsource('yasm', 'http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz', 'yasm-1.3.0.tar.gz')
+    rmoldsouce('yasm')
+    extracting('yasm-1.3.0.tar.gz', 'r:bz2')
+    changedirtosource('yasm')
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure yasm', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
+                                     '--bindir={0}/bin'.format(varhome)])
+    getvars(args)
+    subprocesscom('make yasm', ['make'])
+    subprocesscom('make install yasm', ['make', 'install'])
+
 
 
 def libx264(args):
@@ -190,6 +216,51 @@ def libvpx(args):
     subprocesscom('make install libvpx', ['make', 'install'])
 
 
+def libfdkaac(args):
+    checkfolder()
+    rmoldsource('fdk-aac')
+    subprocesscom('git clone libfdk-aac', ['git', 'clone', '--depth', '1', 'https://github.com/mstorsjo/fdk-aac'])
+    changedirtosource('fdk-aac')
+    subprocesscom('autoreconf -fiv', ['autoreconf', '-fiv'])
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure libfdk-aac', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
+                                           '--disable-shared'])
+    getvars(args)
+    subprocesscom('make libfdk-aac', ['make'])
+    subprocesscom('make install libfdk-aac', ['make', 'install'])
+
+
+def libmp3lame(args):
+    checkfolder()
+    rmoldsouce('lame-3.100')
+    downloadsource('libmp3lame', 'http://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz',
+                   'lame-3.100.tar.gz')
+    extracting('lame-3.100.tar.gz', 'r:gz')
+    changedirtosource('lame-3.100')
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure libmp3lame', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome),
+                                           '--bindir={0}/bin'.format(varhome), '--disable-shared', '--enable-nasm'])
+    getvars(args)
+    subprocesscom('make libmp3lame', ['make'])
+    subprocesscom('make install libmp3lame', ['make', 'install'])
+
+
+def libopus(args):
+    checkfolder()
+    rmoldsouce('opus')
+    subprocesscom('git clone libopus', ['git', 'clone', '--depth', '1', 'https://github.com/xiph/opus.git'])
+    changedirtosource('opus')
+    subprocesscom('./autogen.sh libopus', ['./autogen.sh'])
+    configurechmod()
+    varpath, varhome = getvars(args)
+    subprocesscom('configure libopus', ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--disable-shared'])
+    getvars(args)
+    subprocesscom('make libmp3lame', ['make'])
+    subprocesscom('make install libmp3lame', ['make', 'install'])
+
+
 def ffmpeg(args):
     checkfolder()
     downloadsource('ffmpeg', 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2', 'ffmpeg-snapshot.tar.bz2')
@@ -197,7 +268,6 @@ def ffmpeg(args):
     extracting('ffmpeg-snapshot.tar.bz2', 'r:bz2')
     changedirtosource('ffmpeg')
     configurechmod()
-    #os.chdir('./ffmpeg')
     varpath, varhome = getvars(args)
     configure = ['./configure', '--prefix={0}/ffmpeg_build'.format(varhome), '--pkg-config-flags=--static',
                      '--extra-cflags=-I{0}/ffmpeg_build/include'.format(varhome),
@@ -208,14 +278,26 @@ def ffmpeg(args):
     else:
         configure.extend(['--disable-shared', '--enable-static'])
     if args.libx264 is True:
-        configure.extend(['--enable-libx264', '--enable-gpl'])
+        configure.append('--enable-libx264')
+        if '--enable-gpl' not in configure:
+            configure.append('--enable-gpl')
     if args.libx264 is True:
         configure.append('--enable-libx265')
     if args.libvpx is True:
         configure.append('--enable-libvpx')
+    if args.libfdkaac is True:
+        configure.append('--enable-libfdk-aac')
+        if '--enable-gpl' not in configure:
+            configure.append('--enable-gpl')
+    if args.libmp3lame is True:
+        configure.append('--enable-libmp3lame')
+    if args.libopus is True:
+        configure.append('--enable-libopus')
     if args.mytest is True:
-        configure.extend(['--enable-libx264', '--enable-gpl', '--enable-libx265', '--enable-libvpx'])
+        configure.extend(['--enable-libx264', '--enable-gpl', '--enable-libx265', '--enable-libvpx',
+                          '--enable-libfdk-aac', '--enable-gpl', '--enable-libopus'])
     subprocesscom('configure ffmpeg', configure)
+    getvars(args)
     subprocesscom('make ffmpeg', ['make'])
     subprocesscom('make install ffmpeg', ['make', 'install'])
 
@@ -233,12 +315,20 @@ def main():
     args = parser.parse_args()
     if args.nasm is True:
         nasm(args)
+    if args.yasm is True:
+        yasm(args)
     if args.libx264 is True:
         libx264(args)
     if args.libx265 is True:
         libx265(args)
     if args.libvpx is True:
         libvpx(args)
+    if args.libfdkaac is True:
+        libfdkaac(args)
+    if args.libmp3lame is True:
+        libmp3lame(args)
+    if args.libopus is True:
+        libopus(args)
     if args.ffmpeg is True:
         ffmpeg(args)
     if args.check is True:
