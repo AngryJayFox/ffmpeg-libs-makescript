@@ -76,7 +76,7 @@ def downloadsource(name, url, file):
         sys.exit(1)
 
 
-def rmoldsouce(name):
+def rmoldsource(name):
     for f in os.listdir('.'):
         if name in f:
             try:
@@ -139,7 +139,7 @@ def nasm(args):
     checkfolder()
     downloadsource('nasm', 'http://www.nasm.us/pub/nasm/releasebuilds/2.13.01/nasm-2.13.01.tar.bz2',
                    'nasm-2.13.01.tar.bz2')
-    rmoldsouce('nasm')
+    rmoldsource('nasm')
     extracting('nasm-2.13.01.tar.bz2', 'r:bz2')
     changedirtosource('nasm')
     com = ['./autogen.sh']
@@ -156,8 +156,8 @@ def nasm(args):
 def yasm(args):
     checkfolder()
     downloadsource('yasm', 'http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz', 'yasm-1.3.0.tar.gz')
-    rmoldsouce('yasm')
-    extracting('yasm-1.3.0.tar.gz', 'r:bz2')
+    rmoldsource('yasm')
+    extracting('yasm-1.3.0.tar.gz', 'r:gz')
     changedirtosource('yasm')
     configurechmod()
     varpath, varhome = getvars(args)
@@ -173,7 +173,7 @@ def libx264(args):
     checkfolder()
     downloadsource('libx264', 'ftp://ftp.videolan.org/pub/x264/snapshots/last_x264.tar.bz2',
                    'last_x264.tar.bz2')
-    rmoldsouce('x264')
+    rmoldsource('x264')
     extracting('last_x264.tar.bz2', 'r:bz2')
     changedirtosource('x264')
     configurechmod()
@@ -188,7 +188,7 @@ def libx264(args):
 def libx265(args):
     checkfolder()
     downloadsource('libx265', 'http://ftp.videolan.org/pub/videolan/x265/x265_2.5.tar.gz', 'x265_2.5.tar.gz')
-    rmoldsouce('x265')
+    rmoldsource('x265')
     extracting('x265_2.5.tar.gz', 'r:gz')
     changedirtosource('x265')
     os.chdir('source')
@@ -204,7 +204,7 @@ def libx265(args):
 def libvpx(args):
     checkfolder()
     downloadsource('libvpx', 'https://github.com/webmproject/libvpx/archive/v1.6.1.tar.gz', 'v1.6.1.tar.gz')
-    rmoldsouce('libvpx')
+    rmoldsource('libvpx')
     extracting('v1.6.1.tar.gz', 'r:gz')
     changedirtosource('libvpx')
     configurechmod()
@@ -233,7 +233,7 @@ def libfdkaac(args):
 
 def libmp3lame(args):
     checkfolder()
-    rmoldsouce('lame-3.100')
+    rmoldsource('lame-3.100')
     downloadsource('libmp3lame', 'http://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz',
                    'lame-3.100.tar.gz')
     extracting('lame-3.100.tar.gz', 'r:gz')
@@ -249,7 +249,7 @@ def libmp3lame(args):
 
 def libopus(args):
     checkfolder()
-    rmoldsouce('opus')
+    rmoldsource('opus')
     subprocesscom('git clone libopus', ['git', 'clone', '--depth', '1', 'https://github.com/xiph/opus.git'])
     changedirtosource('opus')
     subprocesscom('./autogen.sh libopus', ['./autogen.sh'])
@@ -264,7 +264,7 @@ def libopus(args):
 def ffmpeg(args):
     checkfolder()
     downloadsource('ffmpeg', 'http://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2', 'ffmpeg-snapshot.tar.bz2')
-    rmoldsouce('ffmpeg')
+    rmoldsource('ffmpeg')
     extracting('ffmpeg-snapshot.tar.bz2', 'r:bz2')
     changedirtosource('ffmpeg')
     configurechmod()
