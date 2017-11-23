@@ -24,6 +24,7 @@ def gethelp(args):
         print('ready!')
     except:
         print('something wrong...')
+        sys.exit(1)
 
 
 def convert(args):
@@ -60,8 +61,12 @@ def convert(args):
                     o = o.replace('<', ' ').replace('>', ' ').split()[1]
                     if o == 'AVI':
                         print('Test is success! Format {0}'.format(o))
+                    else:
+                        print('wrong format!{0}'.format(o))
+                        sys.exit(1)
     except:
         print('something wrong')
+        sys.exit(1)
 
 
 def main():
@@ -75,8 +80,6 @@ def main():
         gethelp(args)
     if args.convert is True:
         convert(args)
-
-#convert
 
 
 if __name__ == "__main__":
