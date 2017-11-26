@@ -3,14 +3,15 @@ import os
 import subprocess
 import argparse
 import sys
+from xml.dom import minidom
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ifile', action='store', help='inputfile')
-parser.add_argument('--ofile', action='store', help='outputfile')
-parser.add_argument('--gethelp', default=False,  action='store_true', help='help')
+parser.add_argument('-i', '--ifile', action='store', help='inputfile')
+parser.add_argument('-o', '--ofile', action='store', help='outputfile')
+parser.add_argument('-g', '--gethelp', default=False,  action='store_true', help='help')
 parser.add_argument('--codec', action='store', help='choice codec(mpeg4 maybe)')
-parser.add_argument('--path', action='store', help='destination of bin/')
-parser.add_argument('--convert', default=False, action='store_true', help='convert --ifile to --ofile via --codec')
+parser.add_argument('-p', '--path', action='store', help='destination of bin/')
+parser.add_argument('-c', '--convert', default=False, action='store_true', help='convert --ifile to --ofile via --codec')
 
 
 def gethelp(args):
@@ -51,23 +52,29 @@ def convert(args):
                              '-acodec', 'mp2', '-ab', '320k', '{0}'.format(ofile)])
         print('converting success')
         os.chdir(mypath)
-        print('go home')
-        out = subprocess.check_output(['mediainfo', '-InfoParameters', '--Output=XML', '{0}'.format(ofile)])
-        print('got mediainfo')
-        out = out.decode('utf-8').split()
-        for o in out:
-            if '<Format>' in o:
-                if '</Format>' in o:
-                    o = o.replace('<', ' ').replace('>', ' ').split()[1]
-                    if o == 'AVI':
-                        print('Test is success! Format {0}'.format(o))
-                    else:
-                        print('wrong format!{0}'.format(o))
-                        sys.exit(1)
+        print('going home')
     except:
-        print('something wrong')
-        sys.exit(1)
+        print('convert fail')
 
+
+def check(args):
+    try:
+        print('parsing mediainfo')
+        xmldata = subprocess.check_output(['mediainfo', '-InfoParameters', 
+                                     '--Output=XML', '{0}'.format(args.ofile)]).decode('utf-8')
+        print(xmldata)
+        try:
+            xmlstring = minidom.parseString(xmldata)
+            form = xmlstring.getElementsByTagName('track')[0].childNodes[3].firstChild.nodeValue
+        except Exception as e:
+            print(e)
+        if form.lower() == realformat.lower():
+            print('SUCCESS! Converted file format ({0}) is match with chosen ({1})'.format(form, realformat))
+        else:
+            print('FAIL! Converted file format ({0}) does not match with chosen ({1})'.format(form, realformat))
+            sys.exit(1)
+    except:
+        sys.exit(1)
 
 def main():
     args = parser.parse_args()
@@ -76,10 +83,17 @@ def main():
         mypath = os.environ['HOME']
     else:
         mypath = args.path
+    global realformat
+    try:
+        realformat = args.ofile.split('.')[-1]
+    except:
+        print('cannot get real output format')
+        realformat = 'err'
     if args.gethelp is True:
         gethelp(args)
     if args.convert is True:
         convert(args)
+        check(args)
 
 
 if __name__ == "__main__":
