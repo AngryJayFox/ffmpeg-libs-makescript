@@ -65,7 +65,11 @@ def check(args):
         print(xmldata)
         try:
             xmlstring = minidom.parseString(xmldata)
-            form = xmlstring.getElementsByTagName('track')[0].childNodes[3].firstChild.nodeValue
+            track0childs = xmlstring.getElementsByTagName('track')[0].childNodes
+            for ch in track0childs:
+                if ch.nodeName == 'Format':
+                    form = ch.firstChild.nodeValue
+                    print('format is:', form)
         except Exception as e:
             print(e)
         if form.lower() == realformat.lower():
