@@ -66,7 +66,7 @@ def check(args):
         try:
             xmlstring = minidom.parseString(xmldata)
             track0childs = xmlstring.getElementsByTagName('track')[0].childNodes
-            for ch in track0childs:
+            for ch in track0child:
                 if ch.nodeName == 'Format':
                     form = ch.firstChild.nodeValue
                     print('format is:', form)
