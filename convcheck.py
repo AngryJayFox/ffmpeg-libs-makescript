@@ -11,7 +11,8 @@ parser.add_argument('-o', '--ofile', action='store', help='outputfile')
 parser.add_argument('-g', '--gethelp', default=False,  action='store_true', help='help')
 parser.add_argument('--codec', action='store', help='choice codec(mpeg4 maybe)')
 parser.add_argument('-p', '--path', action='store', help='destination of bin/')
-parser.add_argument('-c', '--convert', default=False, action='store_true', help='convert --ifile to --ofile via --codec')
+parser.add_argument('-c', '--convert', default=False, action='store_true',
+                    help='convert --ifile to --ofile via --codec')
 parser.add_argument('-s', '--size', action='store', help='output file WxH')
 
 
@@ -85,9 +86,11 @@ def check(args, s):
         except Exception as e:
             print(e)
         if form.lower() == realformat.lower():
-            print('SUCCESS FORMAT CHECK! Converted file format ({0}) is match with chosen ({1})'.format(form, realformat))
+            print('SUCCESS FORMAT CHECK! Converted file format ({0}) is match with chosen ({1})'
+                  .format(form, realformat))
         else:
-            print('FAIL FORMAT CHECK! Converted file format ({0}) does not match with chosen ({1})'.format(form, realformat))
+            print('FAIL FORMAT CHECK! Converted file format ({0}) does not match with chosen ({1})'
+                  .format(form, realformat))
             sys.exit(1)
 #Resolution
         try:
@@ -98,9 +101,11 @@ def check(args, s):
                 if ch.nodeName == 'Height':
                     height = ch.firstChild.nodeValue.replace(' pixels', '').replace(' ', '')
             if int(width) == int(s[0]) and int(height) == int(s[1]):
-                print('SUCCESS RESOLUTION CHECK! Resolution set right! ({0}x{1} in args) and {2}x{3} in output!'.format(s[0], s[1], width, height))
+                print('SUCCESS RESOLUTION CHECK! Resolution set right! ({0}x{1} in args) and {2}x{3} in output!'
+                      .format(s[0], s[1], width, height))
             else:
-                print('FAIL RESOLUTION CHECK! Resolution set wrong! ({0}x{1} in args) and {2}x{3} in output!'.format(s[0], s[1], width, height))
+                print('FAIL RESOLUTION CHECK! Resolution set wrong! ({0}x{1} in args) and {2}x{3} in output!'
+                      .format(s[0], s[1], width, height))
         except Exception as e:
             print(e)
             print('Bad args! Exiting')
